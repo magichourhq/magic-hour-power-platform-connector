@@ -1,0 +1,215 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Magic Hour",
+    "description": "Create AI images and videos, then retrieve project status and output URLs.",
+    "version": "1.0"
+  },
+  "host": "api.magichour.ai",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/account": {
+      "get": {
+        "summary": "Get account",
+        "description": "Returns account tier and available Magic Hour credits. Use this action to verify a connection.",
+        "operationId": "GetAccount",
+        "x-ms-visibility": "important",
+        "responses": {
+          "200": {"description": "Account details.", "schema": {"$ref": "#/definitions/Account"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    },
+    "/ai-image-generator": {
+      "post": {
+        "summary": "Create image",
+        "description": "Starts an AI image generation project. This action consumes Magic Hour credits.",
+        "operationId": "CreateImage",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/CreateImageRequest"}}],
+        "responses": {
+          "200": {"description": "Image project created.", "schema": {"$ref": "#/definitions/CreateProjectResponse"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    },
+    "/text-to-video": {
+      "post": {
+        "summary": "Create video",
+        "description": "Starts a text-to-video project. This action consumes Magic Hour credits.",
+        "operationId": "CreateVideo",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/CreateVideoRequest"}}],
+        "responses": {
+          "200": {"description": "Video project created.", "schema": {"$ref": "#/definitions/CreateProjectResponse"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    },
+    "/image-to-video": {
+      "post": {
+        "summary": "Animate image",
+        "description": "Starts an image-to-video project from a Magic Hour file path or stable public image URL. This action consumes Magic Hour credits.",
+        "operationId": "AnimateImage",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/AnimateImageRequest"}}],
+        "responses": {
+          "200": {"description": "Video project created.", "schema": {"$ref": "#/definitions/CreateProjectResponse"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    },
+    "/image-projects/{id}": {
+      "get": {
+        "summary": "Get image project",
+        "description": "Returns current image project status and signed output URLs when complete.",
+        "operationId": "GetImageProject",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "id", "in": "path", "required": true, "type": "string", "description": "Image project ID returned by Create image.", "x-ms-summary": "Image project ID"}],
+        "responses": {
+          "200": {"description": "Image project details.", "schema": {"$ref": "#/definitions/ImageProject"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    },
+    "/video-projects/{id}": {
+      "get": {
+        "summary": "Get video project",
+        "description": "Returns current video project status and signed output URLs when complete.",
+        "operationId": "GetVideoProject",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "id", "in": "path", "required": true, "type": "string", "description": "Video project ID returned by Create video or Animate image.", "x-ms-summary": "Video project ID"}],
+        "responses": {
+          "200": {"description": "Video project details.", "schema": {"$ref": "#/definitions/VideoProject"}},
+          "default": {"description": "Magic Hour API error.", "schema": {"$ref": "#/definitions/ApiError"}}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CreateImageRequest": {
+      "type": "object",
+      "required": ["image_count", "style"],
+      "properties": {
+        "name": {"type": "string", "description": "Optional project name.", "x-ms-summary": "Project name"},
+        "image_count": {"type": "integer", "minimum": 1, "maximum": 16, "default": 1, "description": "Number of images. Allowed values vary by model.", "x-ms-summary": "Image count"},
+        "model": {"type": "string", "default": "default", "description": "Magic Hour image model identifier. Use default for the recommended model.", "x-ms-summary": "Model"},
+        "aspect_ratio": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1", "x-ms-summary": "Aspect ratio"},
+        "resolution": {"type": "string", "enum": ["640px", "1k", "2k", "4k"], "description": "Maximum output resolution. Availability varies by model and plan.", "x-ms-summary": "Resolution"},
+        "style": {"$ref": "#/definitions/ImageStyle"}
+      }
+    },
+    "ImageStyle": {
+      "type": "object",
+      "required": ["prompt"],
+      "properties": {
+        "prompt": {"type": "string", "minLength": 1, "description": "Image generation prompt.", "x-ms-summary": "Prompt"},
+        "tool": {"type": "string", "default": "general", "description": "Magic Hour art-style tool identifier.", "x-ms-summary": "Style tool"}
+      }
+    },
+    "CreateVideoRequest": {
+      "type": "object",
+      "required": ["end_seconds", "style"],
+      "properties": {
+        "name": {"type": "string", "description": "Optional project name.", "x-ms-summary": "Project name"},
+        "end_seconds": {"type": "number", "format": "float", "minimum": 1, "maximum": 60, "description": "Output duration. Supported values vary by model.", "x-ms-summary": "Duration in seconds"},
+        "aspect_ratio": {"type": "string", "enum": ["16:9", "9:16", "1:1"], "x-ms-summary": "Aspect ratio"},
+        "resolution": {"type": "string", "enum": ["360p", "480p", "720p", "1080p", "4k"], "x-ms-summary": "Resolution"},
+        "model": {"type": "string", "default": "default", "description": "Magic Hour video model identifier. Use default for the recommended model.", "x-ms-summary": "Model"},
+        "audio": {"type": "boolean", "default": false, "description": "Generate audio when supported by the selected model.", "x-ms-summary": "Include audio"},
+        "style": {"$ref": "#/definitions/VideoStyle"}
+      }
+    },
+    "AnimateImageRequest": {
+      "type": "object",
+      "required": ["end_seconds", "assets"],
+      "properties": {
+        "name": {"type": "string", "description": "Optional project name.", "x-ms-summary": "Project name"},
+        "end_seconds": {"type": "number", "format": "float", "minimum": 1, "maximum": 60, "description": "Output duration. Supported values vary by model.", "x-ms-summary": "Duration in seconds"},
+        "model": {"type": "string", "default": "default", "description": "Magic Hour video model identifier. Use default for the recommended model.", "x-ms-summary": "Model"},
+        "resolution": {"type": "string", "enum": ["360p", "480p", "720p", "1080p", "4k"], "x-ms-summary": "Resolution"},
+        "audio": {"type": "boolean", "default": false, "description": "Generate audio when supported by the selected model.", "x-ms-summary": "Include audio"},
+        "style": {"$ref": "#/definitions/VideoStyleOptional"},
+        "assets": {"$ref": "#/definitions/ImageAssets"}
+      }
+    },
+    "VideoStyle": {
+      "type": "object",
+      "required": ["prompt"],
+      "properties": {"prompt": {"type": "string", "minLength": 1, "maxLength": 2000, "description": "Video generation prompt.", "x-ms-summary": "Prompt"}}
+    },
+    "VideoStyleOptional": {
+      "type": "object",
+      "properties": {"prompt": {"type": "string", "description": "Optional motion and scene prompt.", "x-ms-summary": "Prompt"}}
+    },
+    "ImageAssets": {
+      "type": "object",
+      "required": ["image_file_path"],
+      "properties": {
+        "image_file_path": {"type": "string", "minLength": 1, "description": "Magic Hour file path or stable public image URL.", "x-ms-summary": "Source image"},
+        "end_image_file_path": {"type": "string", "minLength": 1, "description": "Optional Magic Hour file path or public URL for the last frame.", "x-ms-summary": "End image"}
+      }
+    },
+    "CreateProjectResponse": {
+      "type": "object",
+      "required": ["id", "credits_charged"],
+      "properties": {
+        "id": {"type": "string", "description": "Project ID."},
+        "credits_charged": {"type": "integer", "description": "Credits charged or estimated for this project."}
+      }
+    },
+    "Download": {
+      "type": "object",
+      "required": ["url", "expires_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri", "description": "Signed output URL."},
+        "expires_at": {"type": "string", "format": "date-time", "description": "URL expiration time."}
+      }
+    },
+    "ProjectError": {
+      "type": "object",
+      "properties": {"message": {"type": "string"}, "code": {"type": "string"}}
+    },
+    "ImageProject": {
+      "type": "object",
+      "required": ["id", "status", "downloads"],
+      "properties": {
+        "id": {"type": "string"}, "name": {"type": "string"}, "status": {"$ref": "#/definitions/ProjectStatus"},
+        "image_count": {"type": "integer"}, "type": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"},
+        "enabled": {"type": "boolean"}, "credits_charged": {"type": "integer"},
+        "downloads": {"type": "array", "items": {"$ref": "#/definitions/Download"}}, "error": {"$ref": "#/definitions/ProjectError"}
+      }
+    },
+    "VideoProject": {
+      "type": "object",
+      "required": ["id", "status", "downloads"],
+      "properties": {
+        "id": {"type": "string"}, "name": {"type": "string"}, "status": {"$ref": "#/definitions/ProjectStatus"},
+        "type": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"},
+        "width": {"type": "integer"}, "height": {"type": "integer"}, "enabled": {"type": "boolean"},
+        "start_seconds": {"type": "number", "format": "float"}, "end_seconds": {"type": "number", "format": "float"},
+        "credits_charged": {"type": "integer"}, "fps": {"type": "number", "format": "float"},
+        "downloads": {"type": "array", "items": {"$ref": "#/definitions/Download"}}, "error": {"$ref": "#/definitions/ProjectError"}
+      }
+    },
+    "ProjectStatus": {"type": "string", "enum": ["draft", "queued", "rendering", "complete", "error", "canceled"]},
+    "Account": {
+      "type": "object",
+      "required": ["id", "tier", "credits"],
+      "properties": {
+        "id": {"type": "string"}, "email": {"type": "string"},
+        "tier": {"type": "string", "enum": ["free", "creator", "pro", "business"]},
+        "credits": {"type": "integer", "minimum": 0}, "subscription": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "ApiError": {"type": "object", "additionalProperties": true, "description": "Error response returned by the Magic Hour API."}
+  },
+  "securityDefinitions": {
+    "api_key": {"type": "apiKey", "in": "header", "name": "Authorization"}
+  },
+  "security": [{"api_key": []}],
+  "tags": []
+}
